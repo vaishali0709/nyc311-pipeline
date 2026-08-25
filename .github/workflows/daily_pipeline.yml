@@ -1,0 +1,50 @@
+name: Daily 311 pipeline
+
+on:
+  schedule:
+    - cron: '0 6 * * *'      # 06:00 UTC daily
+  workflow_dispatch:          # lets you run it by hand from the Actions tab
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+      BQ_DATASET: nyc311_raw
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Write service account key
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: echo "$GCP_SA_KEY" > /tmp/gcp-key.json
+
+      - name: Load new 311 requests into BigQuery
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
+        run: python ingest/load_311.py
+
+      - name: Build dbt models
+        working-directory: dbt
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
+          DBT_PROFILES_DIR: .
+        run: |
+          dbt deps
+          dbt source freshness   # dbt build skips this, it has to be asked for
+          dbt build              # runs models and tests together, stops on failure
+
+      - name: Remove key
+        if: always()
+        run: rm -f /tmp/gcp-key.json

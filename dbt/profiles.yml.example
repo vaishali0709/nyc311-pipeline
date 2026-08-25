@@ -1,0 +1,18 @@
+# Optional. dbt/profiles.yml already reads everything from environment
+# variables, so this file is only for people who prefer values written out.
+# If you use it, note that dbt checks the current directory before ~/.dbt/.
+
+nyc311:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: YOUR_GCP_PROJECT_ID          # e.g. nyc311-pipeline-482913
+      dataset: nyc311                        # dbt creates nyc311_staging, nyc311_marts
+      keyfile: /full/path/to/service-account-key.json
+      location: US                           # must match where your dataset lives
+      maximum_bytes_billed: 10000000000
+      threads: 4
+      timeout_seconds: 300
+      priority: interactive

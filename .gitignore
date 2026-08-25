@@ -1,0 +1,17 @@
+# never commit credentials
+*.json
+!package.json
+.dbt/
+profiles-local.yml
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+dbt/.user.yml

@@ -1,0 +1,17 @@
+# Used by GitHub Actions. Reads everything from environment variables, so no
+# credentials live in this file. For local runs, copy profiles.yml.example to
+# ~/.dbt/profiles.yml instead.
+
+nyc311:
+  target: prod
+  outputs:
+    prod:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('GCP_PROJECT') }}"
+      dataset: nyc311
+      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS') }}"
+      location: US
+      maximum_bytes_billed: 10000000000
+      threads: 4
+      timeout_seconds: 300

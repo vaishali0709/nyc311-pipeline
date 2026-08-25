@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: fct_service_requests
+    description: >
+      One row per 311 service request, with an assumed target response time
+      and a flag for whether it was met. Partitioned by day and clustered by
+      agency so date-filtered queries stay cheap.
+    columns:
+      - name: unique_key
+        tests: [unique, not_null]
+      - name: created_date_day
+        tests: [not_null]
+      - name: agency_code
+        tests: [not_null]
+      - name: target_hours
+        description: Assumed target, set in this model. Not published by the city.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [12, 24, 72, 96]
+              quote: false
+      - name: missed_target
+        description: >
+          True when a closed request took longer than its target. Null while
+          the request is still open, because there is no verdict yet.
+      - name: response_hours
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+              config:
+                severity: warn
+
+  - name: agg_agency_performance
+    description: One row per agency per day, with median and p90 response times.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [report_date, agency_code]
+    columns:
+      - name: report_date
+        tests: [not_null]
+      - name: missed_target_pct
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+              inclusive: true
+
+  - name: agg_complaint_type_sla
+    description: >
+      One row per complaint type across all loaded history. Types with fewer
+      than 50 closed requests are excluded as too small to read.
+    columns:
+      - name: complaint_type
+        tests: [unique, not_null]
+      - name: missed_target_pct
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+              inclusive: true
+
+  - name: agg_borough_daily
+    description: One row per borough per day, with a 7-day rolling average.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [report_date, borough]
+    columns:
+      - name: borough
+        tests:
+          - accepted_values:
+              values: ['BRONX', 'BROOKLYN', 'MANHATTAN', 'QUEENS',
+                       'STATEN ISLAND', 'UNSPECIFIED']

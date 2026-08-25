@@ -1,0 +1,19 @@
+name: 'nyc311'
+version: '1.0.0'
+config-version: 2
+
+profile: 'nyc311'
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  nyc311:
+    staging:
+      +materialized: view       # cheap, always current, no storage cost
+      +schema: staging
+    marts:
+      +materialized: table      # queried often, so store the result
+      +schema: marts

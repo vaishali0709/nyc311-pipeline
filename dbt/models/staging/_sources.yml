@@ -1,0 +1,34 @@
+version: 2
+
+sources:
+  - name: nyc311_raw
+    description: >
+      Raw NYC 311 service requests, loaded by ingest/load_311.py straight from
+      the Socrata API with no transformation.
+    database: "{{ env_var('GCP_PROJECT', 'your-project-id') }}"
+    schema: nyc311_raw
+
+    config:
+      freshness:
+        warn_after: {count: 36, period: hour}
+        error_after: {count: 72, period: hour}
+      loaded_at_field: _loaded_at
+
+    tables:
+      - name: service_requests
+        description: One row per 311 service request as the city recorded it.
+        columns:
+          - name: unique_key
+            description: The city's identifier for the request.
+          - name: created_date
+            description: When the request was opened.
+            tests:
+              - not_null
+          - name: closed_date
+            description: When it was closed. Null while still open.
+          - name: agency
+            description: Short code for the responsible agency, e.g. NYPD, HPD.
+          - name: complaint_type
+            description: What the complaint is about.
+          - name: borough
+            description: One of the five boroughs, or UNSPECIFIED.

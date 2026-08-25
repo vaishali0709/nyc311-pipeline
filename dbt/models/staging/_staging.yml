@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: stg_311_requests
+    description: >
+      One row per service request, deduplicated and typed. Adds response time
+      in hours and a few calendar columns the marts reuse.
+
+    columns:
+      - name: unique_key
+        description: The city's identifier. Unique after deduplication.
+        tests:
+          - unique
+          - not_null
+
+      - name: created_date
+        description: When the request was opened.
+        tests:
+          - not_null
+
+      - name: agency_code
+        description: Uppercased agency code.
+        tests:
+          - not_null
+
+      - name: borough
+        description: Borough, with blanks folded into UNSPECIFIED.
+        tests:
+          - accepted_values:
+              values: ['BRONX', 'BROOKLYN', 'MANHATTAN', 'QUEENS',
+                       'STATEN ISLAND', 'UNSPECIFIED']
+
+      - name: response_hours
+        description: >
+          Hours from opening to closing. Null for open requests and for the
+          small number of rows where the close date precedes the open date.
+
+      - name: is_closed
+        description: True once the request has a close date.
+        tests:
+          - not_null
