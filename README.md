@@ -86,11 +86,7 @@ Queries behind everything below: [`analysis/findings_queries.sql`](analysis/find
 
 **Interactive dashboard:** [Tableau Public](https://public.tableau.com/app/profile/vaishali.singh6053/viz/NYC311ResponseTimeAnalysis/NYC311ResponseTimes)
 
-The dashboard runs on the current data, so its numbers have moved on a little from the tables below — the pipeline keeps loading 
-
-every morning. The agency figures also differ because the table below averages each day's median, while the dashboard takes the 
-
-median across everything.
+The dashboard runs on the current data, so its numbers have moved on a little from the tables below — the pipeline keeps loading every morning. The agency figures also differ because the table below averages each day's median, while the dashboard takes the median across everything.
 
 ### The city runs on at least two different clocks
 
