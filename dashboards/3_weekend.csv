@@ -1,0 +1,7 @@
+segment,created_on_weekend,requests,median_hours
+All requests,false,455576,4.5
+All requests,true,186751,2.2
+Illegal Parking,false,68046,1.4
+Illegal Parking,true,27897,1.7
+UNSANITARY CONDITION,false,21372,213.7
+UNSANITARY CONDITION,true,4801,226.7

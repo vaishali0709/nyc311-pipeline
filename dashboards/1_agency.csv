@@ -1,0 +1,11 @@
+agency_code,agency_name,requests,median_hours,p90_hours,miss_pct
+NYPD,New York City Police Department,293107,1.3,7.0,3.3
+HPD,Department of Housing Preservation and Development,104323,161.7,511.7,72.6
+DSNY,Department of Sanitation,56882,42.2,141.4,19.0
+DEP,Department of Environmental Protection,50423,5.1,124.9,26.0
+DOT,Department of Transportation,45395,35.0,282.0,35.1
+DPR,Department of Parks and Recreation,34418,64.9,488.4,41.7
+DOB,Department of Buildings,22820,10.3,445.4,32.6
+DOHMH,Department of Health and Mental Hygiene,16330,107.7,479.0,54.1
+DHS,Department of Homeless Services,7396,5.8,30.9,3.4
+TLC,Taxi and Limousine Commission,5972,44.9,280.0,15.5

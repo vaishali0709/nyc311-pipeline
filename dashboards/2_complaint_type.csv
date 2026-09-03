@@ -1,0 +1,38 @@
+complaint_type,requests,median_hours,p90_hours,miss_pct
+Building/Use,6069,0.0,686.5,32.3
+Overgrown Tree/Branches,6301,117.5,678.0,54.5
+GENERAL,8478,226.5,602.6,78.4
+Maintenance or Facility,6635,215.7,598.7,70.4
+DOOR/WINDOW,8343,211.7,567.9,80.0
+UNSANITARY CONDITION,26173,215.9,548.2,88.6
+FLOORING/STAIRS,5047,208.2,532.3,80.2
+WATER LEAK,9204,197.3,531.5,77.8
+Rodent,5716,191.5,500.3,76.7
+PLUMBING,13927,121.4,485.4,67.0
+PAINT/PLASTER,11347,157.2,483.3,79.3
+ELECTRIC,6224,125.2,474.1,70.9
+Street Light Condition,6465,215.4,421.6,76.5
+Elevator,5484,17.9,391.2,49.4
+Damaged Tree,12373,52.5,337.5,32.7
+General Construction/Plumbing,7230,12.2,274.3,23.0
+Noise,8246,60.8,226.4,89.9
+Street Condition,18876,42.5,186.6,29.1
+Illegal Dumping,7670,53.4,161.7,26.2
+Dirty Condition,13242,49.1,142.2,21.8
+Water Maintenance,9382,2.1,131.6,12.4
+Missed Collection,7254,47.8,121.3,16.7
+Sewer Maintenance,5299,7.7,112.8,11.4
+HEAT/HOT WATER,7633,41.6,90.1,18.6
+Derelict Vehicles,5889,20.4,64.9,2.9
+Water System,17525,0.0,34.2,12.6
+Traffic Signal Condition,9514,2.2,32.3,13.3
+Homeless Person Assistance,5256,5.1,21.0,0.8
+Encampment,9744,1.5,11.3,2.3
+Abandoned Vehicle,12960,2.4,10.0,0.0
+Blocked Driveway,28087,1.6,7.9,4.5
+Illegal Parking,95943,1.5,7.5,4.1
+Noise - Residential,59034,1.2,6.6,3.8
+Noise - Street/Sidewalk,47714,1.2,6.4,4.3
+Noise - Vehicle,9611,1.0,6.0,0.0
+Noise - Commercial,8969,1.0,4.8,2.0
+Illegal Fireworks,8037,0.9,4.2,0.0
