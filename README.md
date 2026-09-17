@@ -10,7 +10,7 @@ It runs on its own every morning. The green ticks in the Actions tab are real ru
 
 **Stack:** Python · BigQuery · dbt · GitHub Actions
 
-Currently holding **~632,000 requests**, 26 June 2026 to 23 August 2026. The start date isn't arbitrary — see *A month of data disappeared*.
+Documented snapshot: **~632,000 requests**, 26 June 2026 to 23 August 2026. The start date isn't arbitrary — see *A month of data disappeared*.
 
 ---
 
@@ -53,11 +53,11 @@ Every model has tests attached. `dbt build` runs a model then immediately tests 
 
 **Duplicates are deduplicated in staging.** The staging model keeps the most recently loaded copy of each `unique_key`, with a `unique` test on it — so if deduplication breaks, the build fails instead of double-counting.
 
-**Response time is calculated in minutes, then divided.** `TIMESTAMP_DIFF(..., HOUR)` truncates: a request closed in 3 hours 55 minutes returns 3, turning a missed 4-hour target into a met one. Minutes ÷ 60 keeps the fraction.
+**Response time is calculated in minutes, then divided.** `TIMESTAMP_DIFF(..., HOUR)` truncates: a request closed in 4 hours 55 minutes returns 4, turning a missed 4-hour target into a met one. Minutes ÷ 60 keeps the fraction.
 
 **Impossible rows are flagged, not deleted.** A few requests close before they open. They carry `has_invalid_close_date` and are excluded from response-time maths, so the count stays visible.
 
-**Open requests get `NULL`, not `false`.** A request still open hasn't missed its target yet.
+**Open requests get `NULL`, not `false`.** This metric evaluates completed requests only. An open request may already be overdue; a separate age-based backlog metric is needed.
 
 **The fact table is partitioned and clustered** — by day, and by agency and complaint type. A full `dbt build` scans about 130 MB.
 
@@ -281,6 +281,12 @@ The case-sensitivity bug above is what the rest of these can't catch. 27 passing
 
 ## What this doesn't do
 
+**Updates to older requests are not reconciled.** The loader filters by created_date, so later status or closure changes to older requests may be missed. This can bias open-request counts and response-time metrics. An update-based extraction or reconciliation strategy is needed before treating these as current operational measures.
+
+**Timestamp-only pagination has a data-loss edge case.** If a full page shares one timestamp, the current safeguard advances one second and can skip remaining records. A composite timestamp and unique-key cursor is a planned improvement.
+
+**Scheduled automation is not pull-request CI.** The workflow runs on a schedule or manual trigger; it does not currently validate proposed changes on pull requests. Ingestion is incremental, while the fact model is rebuilt as a table.
+
 **No official targets.** Everything about missed targets rests on values I chose.
 
 **Response time isn't resolution quality.** A request closed in an hour might have been closed without being fixed. The data records when the ticket shut, not whether the problem went away.
@@ -291,7 +297,7 @@ The case-sensitivity bug above is what the rest of these can't catch. 27 passing
 
 **Boroughs vary enormously in size.** Raw counts across them say more about population than performance, so `agg_borough_daily` reports rates alongside counts.
 
-**Reopened requests aren't tracked.** The feed doesn't expose them, so a request closed and reopened looks like two separate requests.
+**Status history is not tracked.** This implementation does not reconstruct reopen events or a request's sequence of status changes.
 
 **Sixty days is a short window.** Enough for the distributional findings above, not enough for seasonality. Heating complaints in February would look nothing like August.
 
