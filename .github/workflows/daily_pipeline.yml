@@ -1,6 +1,13 @@
 name: Daily 311 pipeline
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'ingest/**'
+      - 'tests/**'
+      - 'requirements.txt'
+      - '.github/workflows/daily_pipeline.yml'
   schedule:
     - cron: '0 6 * * *'      # 06:00 UTC daily
   workflow_dispatch:          # lets you run it by hand from the Actions tab
@@ -24,6 +31,11 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Test ingestion retry handling
+        env:
+          GCP_PROJECT: retry-tests
+        run: python -m unittest discover -s tests -v
 
       - name: Write service account key
         env:

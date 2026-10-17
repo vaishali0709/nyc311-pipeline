@@ -28,6 +28,7 @@ import os
 import sys
 import time
 from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 
 import pandas as pd
 import requests
@@ -38,7 +39,9 @@ PAGE_SIZE = 10_000          # Socrata allows 50k, but small pages survive a slow
 LOOKBACK_DAYS = 90          # only used on the very first run
 MAX_PAGES = 500             # safety stop so a bad filter can't loop forever
 TIMEOUT = 180               # seconds per request
-MAX_RETRIES = 5             # per page, with backoff
+MAX_RETRIES = 5             # total attempts per page, including the first request
+MAX_RETRY_DELAY = 120       # cap each pause so an outage cannot stall the job
+RETRYABLE_HTTP_STATUSES = {408, 429, 500, 502, 503, 504}
 
 PROJECT = os.environ["GCP_PROJECT"]
 DATASET = os.environ.get("BQ_DATASET", "nyc311_raw")
@@ -86,15 +89,29 @@ def get_watermark(client):
     return default
 
 
-def fetch_page(cursor):
-    """
-    One page from the cursor onward, retried with a widening gap.
+def retry_delay(attempt, retry_after=None):
+    """Bounded exponential backoff, including Retry-After seconds or HTTP dates."""
+    delay = min(10 * 2 ** (attempt - 1), MAX_RETRY_DELAY)
+    if retry_after is not None:
+        try:
+            seconds = int(retry_after)
+        except (TypeError, ValueError):
+            try:
+                retry_at = parsedate_to_datetime(retry_after)
+                if retry_at.tzinfo is None:
+                    retry_at = retry_at.replace(tzinfo=timezone.utc)
+                seconds = (retry_at - datetime.now(timezone.utc)).total_seconds()
+            except (TypeError, ValueError, OverflowError):
+                return delay
+        delay = min(MAX_RETRY_DELAY, max(delay, seconds))
+    return delay
 
-    The catch is deliberately wide. A timeout can surface as requests.Timeout,
-    but it can also escape as a bare socket TimeoutError when it happens while
-    the connection is being torn down - and that one is not a requests
-    exception at all. Anything that isn't an HTTP status error is worth
-    another try; a 4xx is not, because it will fail identically forever.
+
+def fetch_page(cursor):
+    """Retry temporary HTTP/network failures without advancing the page cursor.
+
+    Other HTTP errors fail immediately. Exhausted retries still fail the run,
+    leaving already-loaded pages available for the next run to resume from.
     """
     params = {
         "$select": ",".join(COLUMNS),
@@ -104,19 +121,27 @@ def fetch_page(cursor):
     }
 
     for attempt in range(1, MAX_RETRIES + 1):
+        retry_after = None
         try:
-            r = requests.get(API, params=params, timeout=TIMEOUT)
-            r.raise_for_status()
-            return r.json()
-        except requests.HTTPError:
-            raise
+            with requests.get(API, params=params, timeout=TIMEOUT) as response:
+                response.raise_for_status()
+                return response.json()
+        except requests.HTTPError as e:
+            # An error response is falsy in requests, so check against None.
+            if (e.response is None
+                    or e.response.status_code not in RETRYABLE_HTTP_STATUSES
+                    or attempt == MAX_RETRIES):
+                raise
+            reason = f"HTTP {e.response.status_code}"
+            retry_after = e.response.headers.get("Retry-After")
         except (requests.RequestException, OSError) as e:
             if attempt == MAX_RETRIES:
                 raise
-            wait = 10 * attempt
-            print(f"    {type(e).__name__} - retrying in {wait}s "
-                  f"({attempt}/{MAX_RETRIES - 1})")
-            time.sleep(wait)
+            reason = type(e).__name__
+        wait = retry_delay(attempt, retry_after)
+        print(f"    {reason} - retrying in {wait:g}s "
+              f"({attempt}/{MAX_RETRIES - 1})")
+        time.sleep(wait)
 
 
 def clean(df):
