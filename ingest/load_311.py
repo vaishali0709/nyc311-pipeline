@@ -32,6 +32,7 @@ from email.utils import parsedate_to_datetime
 
 import pandas as pd
 import requests
+from google.api_core.exceptions import NotFound
 from google.cloud import bigquery
 
 API = "https://data.cityofnewyork.us/resource/erm2-nwe9.json"
@@ -172,10 +173,19 @@ def clean(df):
 
 def load(client, df):
     """Append one page to BigQuery, creating the table if needed."""
+    try:
+        client.get_table(TABLE_ID)
+    except NotFound:
+        table = bigquery.Table(TABLE_ID, schema=SCHEMA)
+        table.time_partitioning = bigquery.TimePartitioning(
+            field="created_date", expiration_ms=int(timedelta(days=59).total_seconds() * 1000)
+        )
+        table.clustering_fields = ["agency", "complaint_type"]
+        client.create_table(table, exists_ok=True)
+
     job_config = bigquery.LoadJobConfig(
+        create_disposition="CREATE_NEVER",
         write_disposition="WRITE_APPEND",
-        time_partitioning=bigquery.TimePartitioning(field="created_date"),
-        clustering_fields=["agency", "complaint_type"],
         schema=SCHEMA,
     )
     client.load_table_from_dataframe(df, TABLE_ID, job_config=job_config).result()
