@@ -37,7 +37,7 @@ from google.cloud import bigquery
 
 API = "https://data.cityofnewyork.us/resource/erm2-nwe9.json"
 PAGE_SIZE = 10_000          # Socrata allows 50k, but small pages survive a slow line
-LOOKBACK_DAYS = 90          # only used on the very first run
+LOOKBACK_DAYS = 59          # only used on the very first run
 MAX_PAGES = 500             # safety stop so a bad filter can't loop forever
 TIMEOUT = 180               # seconds per request
 MAX_RETRIES = 5             # total attempts per page, including the first request
@@ -171,18 +171,29 @@ def clean(df):
     return df[COLUMNS + ["_loaded_at"]]
 
 
-def load(client, df):
-    """Append one page to BigQuery, creating the table if needed."""
+def ensure_raw_table(client):
+    """Apply sandbox-compatible retention before reading the watermark."""
+    expiration_ms = LOOKBACK_DAYS * 24 * 60 * 60 * 1000
     try:
-        client.get_table(TABLE_ID)
+        table = client.get_table(TABLE_ID)
     except NotFound:
         table = bigquery.Table(TABLE_ID, schema=SCHEMA)
         table.time_partitioning = bigquery.TimePartitioning(
-            field="created_date", expiration_ms=int(timedelta(days=59).total_seconds() * 1000)
+            field="created_date", expiration_ms=expiration_ms
         )
         table.clustering_fields = ["agency", "complaint_type"]
         client.create_table(table, exists_ok=True)
+        return
 
+    partitioning = table.time_partitioning
+    if partitioning.expiration_ms != expiration_ms:
+        partitioning.expiration_ms = expiration_ms
+        table.time_partitioning = partitioning
+        client.update_table(table, ["time_partitioning"])
+
+
+def load(client, df):
+    """Append one page to the prepared raw table."""
     job_config = bigquery.LoadJobConfig(
         create_disposition="CREATE_NEVER",
         write_disposition="WRITE_APPEND",
@@ -195,6 +206,7 @@ def main():
     client = bigquery.Client(project=PROJECT)
     client.create_dataset(bigquery.Dataset(f"{PROJECT}.{DATASET}"), exists_ok=True)
 
+    ensure_raw_table(client)
     cursor = get_watermark(client)
     print(f"fetching requests created from {cursor} onward")
 
